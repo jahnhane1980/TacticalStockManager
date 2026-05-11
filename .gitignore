@@ -36,3 +36,6 @@ google-services.json
 # ENV files
 *.env
 
+#NodeJS
+/node_modules
+
