@@ -37,7 +37,7 @@ Deno.test("TiingoService - Konstruktor validiert Eingaben (Init-Fehler werfen)",
   const mockKy = {} as typeof ky;
   
   assertThrows(() => new TiingoService("", MOCK_URL, mockKy), Error, "TiingoService: API-Key darf nicht leer sein.");
-  assertThrows(() => new TiingoService(MOCK_KEY, "", mockKy), Error, "TiingoService: Basis-URL darf nicht leer sein.");
+  assertThrows(() => new TiingoService(MOCK_KEY, "", mockKy), Error, "BaseApiService: Basis-URL darf nicht leer sein.");
 });
 
 Deno.test("TiingoService.getHistoricalData - Erfolgreicher Abruf (Regel 4 & 26 & 27)", async () => {

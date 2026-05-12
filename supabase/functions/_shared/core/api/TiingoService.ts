@@ -1,8 +1,6 @@
-// functions/_shared/core/api/TiingoService.ts
-
 import ky from "ky";
 import { z } from "zod";
-import { HttpStatus } from "network/HttpStatus.ts";
+import { BaseApiService } from "api/BaseApiService.ts";
 
 /**
  * Fehler-Codes für den TiingoService (Regel 14).
@@ -23,7 +21,6 @@ type TiingoErrorCode = typeof TiingoErrorCodes[keyof typeof TiingoErrorCodes];
 
 /**
  * Statisches Mapping für Fehlermeldungen (Regel 14).
- * Nutzt Platzhalter für dynamische Werte, um Logik-Literale zu vermeiden.
  */
 export const TiingoErrorMessages: Record<TiingoErrorCode, string> = {
   [TiingoErrorCodes.VALIDATION_ERROR]: "TiingoService: Validierungsfehler - {}",
@@ -41,17 +38,7 @@ export const TiingoErrorMessages: Record<TiingoErrorCode, string> = {
 const PriceStringSchema = z.union([z.string(), z.number()]).transform((val) => String(val));
 
 /**
- * Standard-Response Format nach Regel 4.
- */
-export type ServiceResponse<T> = Promise<{
-  data: T | null;
-  error: { message: string; code: string } | null;
-}>;
-
-/**
  * Zod-Schema für die Validierung der Tiingo-Historien-Daten.
- * Nutzt Source-of-Truth aus AAPL_2year.json.
- * Alle Preise werden als Strings validiert, um Floats zu vermeiden (Regel 27).
  */
 export const TiingoHistoricalDataSchema = z.object({
   date: z.string(),
@@ -94,10 +81,8 @@ export type TiingoPriceResponse = z.infer<typeof TiingoIexResponseSchema>;
 /**
  * Service für die Interaktion mit der Tiingo-API.
  */
-export class TiingoService {
+export class TiingoService extends BaseApiService {
   private readonly apiKey: string;
-  private readonly baseUrl: string;
-  private readonly httpClient: typeof ky;
 
   /**
    * @param apiKey Der TIINGO_KEY aus der Umgebung.
@@ -105,28 +90,17 @@ export class TiingoService {
    * @param httpClient Die ky-Instanz für Mocking/Testing.
    */
   constructor(apiKey: string, baseUrl: string, httpClient: typeof ky) {
+    super(baseUrl, httpClient);
     if (!apiKey || apiKey.trim() === "") {
       throw new Error("TiingoService: API-Key darf nicht leer sein.");
     }
-    if (!baseUrl || baseUrl.trim() === "") {
-      throw new Error("TiingoService: Basis-URL darf nicht leer sein.");
-    }
-
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-    this.httpClient = httpClient;
   }
 
   /**
    * Holt historische Preisdaten für einen spezifischen Ticker ab einem Startdatum.
-   * URL: tiingo/daily/TICKER/prices?startDate=YYYY-MM-DD&token=TIINGO_KEY
-   * 
-   * @param ticker Das Börsenkürzel (z.B. "AAPL").
-   * @param startDate Das Startdatum im Format 'YYYY-MM-DD'.
-   * @returns Eine Liste validierter historischer Daten (Regel 4 & 26 & 27).
    */
   async getHistoricalData(ticker: string, startDate: string): ServiceResponse<TiingoHistoricalData[]> {
-    // 1. Validierung der Parameter
     if (!ticker || typeof ticker !== "string" || ticker.trim() === "") {
       return {
         data: null,
@@ -153,10 +127,6 @@ export class TiingoService {
 
   /**
    * Holt die aktuellsten täglichen Preisdaten für einen Ticker.
-   * URL: tiingo/daily/TICKER/prices?token=TIINGO_KEY
-   * 
-   * @param ticker Das Börsenkürzel (z.B. "AAPL").
-   * @returns Eine Liste validierter historischer Daten (Regel 4 & 26 & 27).
    */
   async getDaily(ticker: string): ServiceResponse<TiingoHistoricalData[]> {
     if (!ticker || typeof ticker !== "string" || ticker.trim() === "") {
@@ -173,66 +143,28 @@ export class TiingoService {
   }
 
   /**
-   * Zentraler Abruf von Tiingo-Preisen (Fassade).
-   * 
-   * @param ticker Das Börsenkürzel.
-   * @param startDate Optionales Startdatum.
+   * Zentraler Abruf von Tiingo-Preisen.
    */
   private async fetchTiingoPrices(ticker: string, startDate?: string): ServiceResponse<TiingoHistoricalData[]> {
     const sanitizedTicker = ticker.trim().toLowerCase();
+    const searchParams: Record<string, string> = { token: this.apiKey };
+    if (startDate) searchParams.startDate = startDate;
 
-    try {
-      const searchParams: Record<string, string> = {
-        token: this.apiKey,
-      };
-
-      if (startDate) {
-        searchParams.startDate = startDate;
-      }
-
-      const response = await this.httpClient.get(`tiingo/daily/${sanitizedTicker}/prices`, {
+    return this.safeRequest(
+      () => this.httpClient.get(`tiingo/daily/${sanitizedTicker}/prices`, {
         prefixUrl: this.baseUrl,
         searchParams: searchParams,
         retry: 0,
-      });
-
-      if (response.status !== HttpStatus.OK) {
-        return {
-          data: null,
-          error: {
-            message: TiingoErrorMessages[TiingoErrorCodes.NETWORK_ERROR].replace("{}", String(response.status)),
-            code: TiingoErrorCodes.NETWORK_ERROR,
-          },
-        };
-      }
-
-      const rawData = await response.json();
-      
-      const validationResult = z.array(TiingoHistoricalDataSchema).safeParse(rawData);
-      if (!validationResult.success) {
-        return {
-          data: null,
-          error: {
-            message: TiingoErrorMessages[TiingoErrorCodes.VALIDATION_ERROR].replace("{}", validationResult.error.message),
-            code: TiingoErrorCodes.VALIDATION_ERROR,
-          },
-        };
-      }
-
-      return { data: validationResult.data, error: null };
-
-    } catch (error: unknown) {
-      return this.handleHttpError(error, sanitizedTicker);
-    }
+      }),
+      TiingoErrorMessages,
+      TiingoErrorCodes.INTERNAL_ERROR,
+      z.array(TiingoHistoricalDataSchema),
+      sanitizedTicker
+    );
   }
 
   /**
    * Holt Preisdaten für einen spezifischen Ticker und eine Frequenz (IEX).
-   * URL: iex/TICKER/prices?resampleFreq=FREQUENZ&token=TIINGO_KEY
-   * 
-   * @param ticker Das Börsenkürzel (z.B. "AAPL").
-   * @param frequency Die Resample-Frequenz (z.B. "1hour").
-   * @returns Eine Liste validierter IEX-Preisdaten (Regel 4 & 26 & 27).
    */
   async getPrices(ticker: string, frequency: string): ServiceResponse<TiingoPriceResponse[]> {
     if (!ticker || typeof ticker !== "string" || ticker.trim() === "") {
@@ -257,103 +189,19 @@ export class TiingoService {
     const sanitizedTicker = ticker.trim().toUpperCase();
     const sanitizedFreq = frequency.trim().toLowerCase();
 
-    try {
-      const response = await this.httpClient.get(`iex/${sanitizedTicker}/prices`, {
+    return this.safeRequest(
+      () => this.httpClient.get(`iex/${sanitizedTicker}/prices`, {
         prefixUrl: this.baseUrl,
         searchParams: {
           resampleFreq: sanitizedFreq,
           token: this.apiKey,
         },
-        retry: 0, 
-      });
-
-      if (response.status !== HttpStatus.OK) {
-        return {
-          data: null,
-          error: {
-            message: TiingoErrorMessages[TiingoErrorCodes.NETWORK_ERROR].replace("{}", String(response.status)),
-            code: TiingoErrorCodes.NETWORK_ERROR,
-          },
-        };
-      }
-
-      // Regel 26: Zero-Trust Validation. Entfernung von 'as any'.
-      const rawData = await response.json();
-      const validationResult = z.array(TiingoIexResponseSchema).safeParse(rawData);
-      
-      if (!validationResult.success) {
-        return {
-          data: null,
-          error: {
-            message: TiingoErrorMessages[TiingoErrorCodes.VALIDATION_ERROR].replace("{}", validationResult.error.message),
-            code: TiingoErrorCodes.VALIDATION_ERROR,
-          },
-        };
-      }
-
-      // Regel 27: Financial Precision ist durch PriceStringSchema sichergestellt.
-      return { data: validationResult.data, error: null };
-
-    } catch (error: unknown) {
-      return this.handleHttpError(error, sanitizedTicker);
-    }
-  }
-
-  /**
-   * Zentrales Error-Handling für HTTP-Fehler (Regel 1 & 4).
-   * Entfernt 'as any' Casting und nutzt Type-Guards (Regel 1).
-   */
-  private handleHttpError(error: unknown, ticker: string): { data: null; error: { message: string; code: string } } {
-    if (error instanceof Error && error.name === "HTTPError" && "response" in error) {
-      const response = error.response;
-      
-      if (response instanceof Response) {
-        const status = response.status;
-
-        switch (status) {
-          case HttpStatus.UNAUTHORIZED:
-            return {
-              data: null,
-              error: { 
-                message: TiingoErrorMessages[TiingoErrorCodes.UNAUTHORIZED], 
-                code: TiingoErrorCodes.UNAUTHORIZED 
-              },
-            };
-          case HttpStatus.TOO_MANY_REQUESTS:
-            return {
-              data: null,
-              error: { 
-                message: TiingoErrorMessages[TiingoErrorCodes.RATE_LIMIT], 
-                code: TiingoErrorCodes.RATE_LIMIT 
-              },
-            };
-          case HttpStatus.NOT_FOUND:
-            return {
-              data: null,
-              error: { 
-                message: TiingoErrorMessages[TiingoErrorCodes.NOT_FOUND].replace("{}", ticker), 
-                code: TiingoErrorCodes.NOT_FOUND 
-              },
-            };
-          default:
-            return {
-              data: null,
-              error: { 
-                message: TiingoErrorMessages[TiingoErrorCodes.NETWORK_ERROR].replace("{}", String(status || "Unknown")), 
-                code: TiingoErrorCodes.NETWORK_ERROR 
-              },
-            };
-        }
-      }
-    }
-
-    const errorMessage = error instanceof Error ? error.message : "Unknown Error";
-    return {
-      data: null,
-      error: {
-        message: TiingoErrorMessages[TiingoErrorCodes.INTERNAL_ERROR].replace("{}", errorMessage),
-        code: TiingoErrorCodes.INTERNAL_ERROR,
-      },
-    };
+        retry: 0,
+      }),
+      TiingoErrorMessages,
+      TiingoErrorCodes.INTERNAL_ERROR,
+      z.array(TiingoIexResponseSchema),
+      sanitizedTicker.toLowerCase()
+    );
   }
 }

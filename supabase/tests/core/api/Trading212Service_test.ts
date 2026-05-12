@@ -39,7 +39,7 @@ Deno.test("Trading212Service - Test 1: Konstruktor validiert Eingaben", () => {
   
   assertThrows(() => new Trading212Service("", MOCK_SECRET, MOCK_URL, mockKy), Error, "Trading212Service: API-Key darf nicht leer sein.");
   assertThrows(() => new Trading212Service(MOCK_KEY, "", MOCK_URL, mockKy), Error, "Trading212Service: API-Secret darf nicht leer sein.");
-  assertThrows(() => new Trading212Service(MOCK_KEY, MOCK_SECRET, "", mockKy), Error, "Trading212Service: Basis-URL darf nicht leer sein.");
+  assertThrows(() => new Trading212Service(MOCK_KEY, MOCK_SECRET, "", mockKy), Error, "BaseApiService: Basis-URL darf nicht leer sein.");
 });
 
 // Test 2: Erfolgsfall mit Zod-Coercion (Regel 27)
