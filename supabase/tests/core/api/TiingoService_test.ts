@@ -244,21 +244,23 @@ Deno.test("TiingoService.getPrices - Parameter Validierung", async () => {
   assertEquals(result2.error?.message, TiingoErrorMessages[TiingoErrorCodes.VALIDATION_ERROR].replace("{}", "Frequenz ungültig"));
 });
 
-Deno.test("TiingoService.getPrices - Validierung der IEX-Daten (Regel 26)", async () => {
-  // Invalid data: high as non-number/non-string
-  const invalidData = [
+Deno.test("TiingoService.getPrices - Transformation von Null-Werten (Regel 27)", async () => {
+  // Testdaten: high ist null -> wird durch PriceStringSchema zu "0" transformiert
+  const dataWithNull = [
     { date: "2026-05-08T14:00:00Z", close: 293.57, high: null, low: 292.54, open: 293.92 }
   ];
   
-  const mockKy = createMockClient(HttpStatus.OK, invalidData);
+  const mockKy = createMockClient(HttpStatus.OK, dataWithNull);
   const service = new TiingoService(MOCK_KEY, MOCK_URL, mockKy);
 
   const result = await service.getPrices("AAPL", "1hour");
   
-  assertEquals(result.data, null);
-  assertEquals(result.error?.code, TiingoErrorCodes.VALIDATION_ERROR);
-  const expectedMsg = TiingoErrorMessages[TiingoErrorCodes.VALIDATION_ERROR].replace("{}", "");
-  assertEquals(result.error?.message.startsWith(expectedMsg), true);
+  assertEquals(result.error, null);
+  assertEquals(result.data?.length, 1);
+  if (result.data) {
+    assertEquals(result.data[0].high, "0"); // Transformation verifizieren
+    assertEquals(result.data[0].close, "293.57");
+  }
 });
 
 Deno.test("TiingoService.getPrices - Handling von unvollständigen HTTP-Fehlern (Coverage)", async () => {

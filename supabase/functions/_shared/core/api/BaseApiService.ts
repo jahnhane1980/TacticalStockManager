@@ -3,6 +3,7 @@
 import ky from "ky";
 import { z } from "zod";
 import { ResponseAdapter } from "api/ResponseAdapter.ts";
+import { PriceStringSchema } from "core/models/ZodUtils.ts";
 
 /**
  * Basis-Klasse für alle API-Services (Engine-Adapter-Pattern).
@@ -11,14 +12,6 @@ export abstract class BaseApiService {
   protected readonly baseUrl: string;
   protected readonly httpClient: typeof ky;
   protected readonly adapter: ResponseAdapter;
-
-  /**
-   * Hilfs-Schema für Finanzwerte (Regel 27).
-   * Transformiert Zahlen oder Strings in Strings für exakte Berechnungen.
-   */
-  public static readonly PriceStringSchema = z
-    .union([z.string(), z.number(), z.null()])
-    .transform((val) => (val === null ? "0" : String(val)));
 
   /**
    * @param baseUrl Die Basis-URL des Services.

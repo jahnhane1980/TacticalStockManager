@@ -1,6 +1,7 @@
 import ky from "ky";
 import { z } from "zod";
 import { BaseApiService } from "api/BaseApiService.ts";
+import { PriceStringSchema } from "core/models/ZodUtils.ts";
 
 /**
  * Fehler-Codes für den TiingoService (Regel 14).
@@ -30,12 +31,6 @@ export const TiingoErrorMessages: Record<TiingoErrorCode, string> = {
   [TiingoErrorCodes.NETWORK_ERROR]: "TiingoService: Netzwerkfehler ({}).",
   [TiingoErrorCodes.INTERNAL_ERROR]: "TiingoService: Interner Fehler - {}",
 };
-
-/**
- * Hilfs-Schema für Preis-Strings (Regel 27).
- * Verhindert, dass 'null' oder 'undefined' zu Strings ("null") konvertiert werden.
- */
-const PriceStringSchema = z.union([z.string(), z.number()]).transform((val) => String(val));
 
 /**
  * Zod-Schema für die Validierung der Tiingo-Historien-Daten.

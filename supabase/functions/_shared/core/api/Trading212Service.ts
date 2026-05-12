@@ -3,6 +3,7 @@
 import ky from "ky";
 import { z } from "zod";
 import { BaseApiService } from "api/BaseApiService.ts";
+import { PriceStringSchema } from "core/models/ZodUtils.ts";
 
 /**
  * Fehler-Codes für den Trading212Service (Regel 14).
@@ -48,10 +49,10 @@ const Trading212InstrumentSchema = z.object({
  */
 const Trading212WalletImpactSchema = z.object({
   currency: z.string(),
-  totalCost: BaseApiService.PriceStringSchema,
-  currentValue: BaseApiService.PriceStringSchema,
-  unrealizedProfitLoss: BaseApiService.PriceStringSchema,
-  fxImpact: BaseApiService.PriceStringSchema,
+  totalCost: PriceStringSchema,
+  currentValue: PriceStringSchema,
+  unrealizedProfitLoss: PriceStringSchema,
+  fxImpact: PriceStringSchema,
 });
 
 /**
@@ -60,11 +61,11 @@ const Trading212WalletImpactSchema = z.object({
 export const Trading212PortfolioSchema = z.object({
   instrument: Trading212InstrumentSchema,
   createdAt: z.string(),
-  quantity: BaseApiService.PriceStringSchema,
-  quantityAvailableForTrading: BaseApiService.PriceStringSchema,
-  quantityInPies: BaseApiService.PriceStringSchema,
-  currentPrice: BaseApiService.PriceStringSchema,
-  averagePricePaid: BaseApiService.PriceStringSchema,
+  quantity: PriceStringSchema,
+  quantityAvailableForTrading: PriceStringSchema,
+  quantityInPies: PriceStringSchema,
+  currentPrice: PriceStringSchema,
+  averagePricePaid: PriceStringSchema,
   walletImpact: Trading212WalletImpactSchema,
 });
 
