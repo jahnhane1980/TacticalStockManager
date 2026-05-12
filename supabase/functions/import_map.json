@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "ky": "https://esm.sh/ky@0.33.0",
+    "api/": "./_shared/core/api/",
+    "network/": "./_shared/core/network/",
+    "core/": "./_shared/core/",
+    "supabase": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}
