@@ -1,0 +1,359 @@
+﻿[
+    {
+        "instrument":  {
+                           "ticker":  "COPXl_EQ",
+                           "name":  "Global X Copper Miners (Acc)",
+                           "isin":  "IE0003Z9E2Y3",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-30T11:52:39.000+03:00",
+        "quantity":  15.0000000000,
+        "quantityAvailableForTrading":  15.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  69.17,
+        "averagePricePaid":  60.9866666700,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  783.720000,
+                             "currentValue":  880.27,
+                             "unrealizedProfitLoss":  96.55,
+                             "fxImpact":  -7.59
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "EGLNl_EQ",
+                           "name":  "iShares Physical Gold",
+                           "isin":  "IE00B4ND3602",
+                           "currency":  "EUR"
+                       },
+        "createdAt":  "2026-04-27T10:00:18.000+03:00",
+        "quantity":  80.0000000000,
+        "quantityAvailableForTrading":  80.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  77.80,
+        "averagePricePaid":  76.5282500000,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  6122.260000,
+                             "currentValue":  6224.00,
+                             "unrealizedProfitLoss":  101.74,
+                             "fxImpact":  null
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "AACI_US_EQ",
+                           "name":  "Rezolve AI",
+                           "isin":  "GB00BQH8G337",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-17T14:13:55.000+03:00",
+        "quantity":  2100.0000000000,
+        "quantityAvailableForTrading":  2100.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  2.54,
+        "averagePricePaid":  2.4990714300,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  4483.550000,
+                             "currentValue":  4525.44,
+                             "unrealizedProfitLoss":  41.89,
+                             "fxImpact":  -31.03
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "NOW_US_EQ",
+                           "name":  "ServiceNow",
+                           "isin":  "US81762P1021",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-16T15:51:37.000+03:00",
+        "quantity":  54.0000000000,
+        "quantityAvailableForTrading":  54.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  92.00,
+        "averagePricePaid":  92.4607407400,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  4254.310000,
+                             "currentValue":  4214.92,
+                             "unrealizedProfitLoss":  -39.39,
+                             "fxImpact":  -18.28
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "S_US_EQ",
+                           "name":  "SentinelOne",
+                           "isin":  "US81730H1095",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-10T17:09:26.000+03:00",
+        "quantity":  594.0000000000,
+        "quantityAvailableForTrading":  594.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  16.36,
+        "averagePricePaid":  12.0586363600,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  6107.480000,
+                             "currentValue":  8244.75,
+                             "unrealizedProfitLoss":  2137.27,
+                             "fxImpact":  -30.44
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "PATH_US_EQ",
+                           "name":  "UiPath",
+                           "isin":  "US90364P1057",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-05-05T11:21:47.000+03:00",
+        "quantity":  350.0000000000,
+        "quantityAvailableForTrading":  350.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  10.77,
+        "averagePricePaid":  10.6247142900,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  3179.470000,
+                             "currentValue":  3198.10,
+                             "unrealizedProfitLoss":  18.63,
+                             "fxImpact":  -24.51
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "NK_US_EQ",
+                           "name":  "ImmunityBio",
+                           "isin":  "US45256X1037",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-29T15:02:45.000+03:00",
+        "quantity":  165.0000000000,
+        "quantityAvailableForTrading":  165.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  8.46,
+        "averagePricePaid":  6.9290909100,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  978.100000,
+                             "currentValue":  1184.30,
+                             "unrealizedProfitLoss":  206.20,
+                             "fxImpact":  -8.11
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "SILVl_EQ",
+                           "name":  "Global X Silver Miners",
+                           "isin":  "IE000UL6CLP7",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-05-01T10:18:28.000+03:00",
+        "quantity":  40.0000000000,
+        "quantityAvailableForTrading":  40.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  48.669,
+        "averagePricePaid":  42.1820000000,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  1440.230000,
+                             "currentValue":  1651.66,
+                             "unrealizedProfitLoss":  211.43,
+                             "fxImpact":  -8.72
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "SILVm_EQ",
+                           "name":  "Global X Silver Miners",
+                           "isin":  "IE000UL6CLP7",
+                           "currency":  "EUR"
+                       },
+        "createdAt":  "2026-04-21T11:37:11.000+03:00",
+        "quantity":  260.0000000000,
+        "quantityAvailableForTrading":  260.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  41.267,
+        "averagePricePaid":  37.2661538500,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  9689.200000,
+                             "currentValue":  10729.42,
+                             "unrealizedProfitLoss":  1040.22,
+                             "fxImpact":  null
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "WGLDd_EQ",
+                           "name":  "WisdomTree Core Physical Gold",
+                           "isin":  "JE00BN2CJ301",
+                           "currency":  "EUR"
+                       },
+        "createdAt":  "2026-04-24T10:49:09.000+03:00",
+        "quantity":  2.0000000000,
+        "quantityAvailableForTrading":  2.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  398.27,
+        "averagePricePaid":  393.4300000000,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  786.860000,
+                             "currentValue":  796.54,
+                             "unrealizedProfitLoss":  9.68,
+                             "fxImpact":  null
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "AAL_US_EQ",
+                           "name":  "American Airlines",
+                           "isin":  "US02376R1023",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-15T11:09:25.000+03:00",
+        "quantity":  324.5835390900,
+        "quantityAvailableForTrading":  324.5835390900,
+        "quantityInPies":  0,
+        "currentPrice":  12.95,
+        "averagePricePaid":  11.7925881600,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  3262.210000,
+                             "currentValue":  3566.19,
+                             "unrealizedProfitLoss":  303.98,
+                             "fxImpact":  -14.75
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "SOUN_US_EQ",
+                           "name":  "SoundHound AI",
+                           "isin":  "US8361001071",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-27T12:09:59.000+03:00",
+        "quantity":  294.0000000000,
+        "quantityAvailableForTrading":  294.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  8.46,
+        "averagePricePaid":  7.9825170100,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  2002.460000,
+                             "currentValue":  2110.21,
+                             "unrealizedProfitLoss":  107.75,
+                             "fxImpact":  -11.35
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "DOCS_US_EQ",
+                           "name":  "Doximity",
+                           "isin":  "US26622P1075",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-16T19:50:14.000+03:00",
+        "quantity":  70.0000000000,
+        "quantityAvailableForTrading":  70.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  26.23,
+        "averagePricePaid":  24.1644285700,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  1438.640000,
+                             "currentValue":  1557.77,
+                             "unrealizedProfitLoss":  119.13,
+                             "fxImpact":  -3.54
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "GDXm_EQ",
+                           "name":  "VanEck Gold Miners (Acc)",
+                           "isin":  "IE00BQQP9F84",
+                           "currency":  "EUR"
+                       },
+        "createdAt":  "2026-04-16T17:03:02.000+03:00",
+        "quantity":  130.0000000000,
+        "quantityAvailableForTrading":  130.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  93.73,
+        "averagePricePaid":  88.9314615400,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  11561.090000,
+                             "currentValue":  12184.90,
+                             "unrealizedProfitLoss":  623.81,
+                             "fxImpact":  null
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "VZLAd_EQ",
+                           "name":  "WisdomTree Physical Platinum",
+                           "isin":  "JE00B1VS2W53",
+                           "currency":  "EUR"
+                       },
+        "createdAt":  "2026-04-24T10:49:39.000+03:00",
+        "quantity":  2.0000000000,
+        "quantityAvailableForTrading":  2.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  162.45,
+        "averagePricePaid":  152.6150000000,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  305.230000,
+                             "currentValue":  324.90,
+                             "unrealizedProfitLoss":  19.67,
+                             "fxImpact":  null
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "G2XJd_EQ",
+                           "name":  "VanEck Junior Gold Miners (Acc)",
+                           "isin":  "IE00BQQP9G91",
+                           "currency":  "EUR"
+                       },
+        "createdAt":  "2026-04-16T17:02:17.000+03:00",
+        "quantity":  160.0000000000,
+        "quantityAvailableForTrading":  160.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  101.58,
+        "averagePricePaid":  95.8523125000,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  15336.370000,
+                             "currentValue":  16252.80,
+                             "unrealizedProfitLoss":  916.43,
+                             "fxImpact":  null
+                         }
+    },
+    {
+        "instrument":  {
+                           "ticker":  "ISLNl_EQ",
+                           "name":  "iShares Physical Silver",
+                           "isin":  "IE00B4NCWG09",
+                           "currency":  "USD"
+                       },
+        "createdAt":  "2026-04-27T10:00:01.000+03:00",
+        "quantity":  85.0000000000,
+        "quantityAvailableForTrading":  85.0000000000,
+        "quantityInPies":  0,
+        "currentPrice":  80.54997,
+        "averagePricePaid":  70.0378823500,
+        "walletImpact":  {
+                             "currency":  "EUR",
+                             "totalCost":  5090.250000,
+                             "currentValue":  5808.88,
+                             "unrealizedProfitLoss":  718.63,
+                             "fxImpact":  -39.45
+                         }
+    }
+]
