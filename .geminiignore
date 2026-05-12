@@ -1,0 +1,35 @@
+# Beleg: Searching for 'Deno/Supabase/Expo ignore list'... [Found in GitHub / Starter Templates]
+
+# --- Abhängigkeiten & Binärdaten ---
+node_modules/
+app/node_modules/
+.git/
+dist/
+build/
+.cache/
+
+# --- Deno Spezifisch ---
+.deno/                   # Lokaler Deno-Cache
+deno.lock                # Metadaten der Abhängigkeiten (oft hunderte Zeilen) 
+
+# --- Supabase & Edge Functions ---
+supabase/.temp/          # Temporäre CLI-Dateien
+supabase/.branches/      # Lokale Branch-Verwaltung
+supabase/_mig/           # Metadaten der Migrationen
+supabase/*.sqlite        # Lokale DB-Snapshots 
+supabase/*.db            # Lokale DB-Snapshots 
+*.sqlite-journal
+
+# --- Expo & Mobile ---
+.expo/                   # Expo-Entwicklungs-Cache (sehr wichtig!)
+app/android/             # Generierter nativer Code
+app/ios/                 # Generierter nativer Code
+*.jks                    # Android Keystores
+*.apk
+*.bundle
+
+# --- Logs & System ---
+*.log                    # 
+.DS_Store                # 
+.env* # Schutz von Secrets
+!.gemini.env             # Ausnahme: Deine CLI-Konfiguration
