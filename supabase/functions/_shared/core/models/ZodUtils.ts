@@ -6,4 +6,4 @@ import { z } from "zod";
  * Wandelt Zahlen und null-Werte in Strings um.
  */
 export const PriceStringSchema = z.union([z.string(), z.number(), z.null()])
-  .transform((val) => (val === null ? "0" : String(val)));
+  .transform((val): string => (val === null ? "0" : String(val)));

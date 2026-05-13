@@ -2,7 +2,8 @@
 
 import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { SupabaseClient, PostgrestError } from "supabase";
-import { PortfolioRepository, PortfolioDbErrorCodes, PortfolioDbErrorMessages, type PortfolioEntity } from "core/repository/PortfolioRepository.ts";
+import { PortfolioRepository, PortfolioDbErrorCodes, PortfolioDbErrorMessages } from "core/repository/PortfolioRepository.ts";
+import { type PortfolioEntity } from "core/models/PortfolioModels.ts";
 
 /**
  * Erstellt einen Supabase-Client Mock.

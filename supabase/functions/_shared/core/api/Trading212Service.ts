@@ -2,7 +2,7 @@
 
 import ky from "ky";
 import { z } from "zod";
-import { BaseApiService } from "api/BaseApiService.ts";
+import { BaseApiService, ServiceResponse } from "api/BaseApiService.ts";
 import { PriceStringSchema } from "core/models/ZodUtils.ts";
 
 /**
@@ -73,14 +73,6 @@ export const Trading212PortfolioSchema = z.object({
  * Typ für Trading212 Portfolio-Daten.
  */
 export type Trading212Portfolio = z.infer<typeof Trading212PortfolioSchema>;
-
-/**
- * Standard-Response Format nach Regel 4.
- */
-export type ServiceResponse<T> = Promise<{
-  data: T | null;
-  error: { message: string; code: string } | null;
-}>;
 
 /**
  * Service für die Interaktion mit der Trading 212 API.

@@ -6,6 +6,14 @@ import { ResponseAdapter } from "api/ResponseAdapter.ts";
 import { PriceStringSchema } from "core/models/ZodUtils.ts";
 
 /**
+ * Standard-Response Format nach Regel 4.
+ */
+export type ServiceResponse<T> = Promise<{
+  data: T | null;
+  error: { message: string; code: string } | null;
+}>;
+
+/**
  * Basis-Klasse für alle API-Services (Engine-Adapter-Pattern).
  */
 export abstract class BaseApiService {
@@ -39,9 +47,9 @@ export abstract class BaseApiService {
     requestFn: () => Promise<Response>,
     dictionary: Record<string, string>,
     fallbackCode: string,
-    schema: z.ZodSchema<T>,
+    schema: z.ZodType<T, any, any>,
     resource?: string
-  ): Promise<{ data: T | null; error: { message: string; code: string } | null }> {
+  ): ServiceResponse<T> {
     try {
       const response = await requestFn();
       

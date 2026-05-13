@@ -2,7 +2,6 @@
 
 $ENV_PATH = ".env"
 $IMPORT_MAP_PATH = "supabase/functions/import_map.json"
-$TEST_SCRIPT_PATH = "scripts/deno/test_repo_live.ts"
 
 function Invoke-Supabase { npx.cmd supabase @args }
 
@@ -16,7 +15,7 @@ while (!(docker info 2>$null)) { Start-Sleep -Seconds 2 }
 Invoke-Supabase db reset
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
-Write-Host "--- [2/2] Extracting Keys & Running Test ---" -ForegroundColor Cyan
+Write-Host "--- [2/2] Extracting Keys & Running Tests ---" -ForegroundColor Cyan
 if (-not (Test-Path $ENV_PATH)) { Write-Error "ROOT/.env missing"; exit 1 }
 
 # Keys aus .env extrahieren (cite: 13)
@@ -27,7 +26,11 @@ $key = ([regex]::Match($envContent, 'SUPA_BASE_KEY=(.+)')).Groups[1].Value.Trim(
 $env:SUPABASE_URL = $url
 $env:SUPABASE_SERVICE_ROLE_KEY = $key
 
-deno run --allow-net --allow-read --allow-env --import-map=$IMPORT_MAP_PATH $TEST_SCRIPT_PATH
+Write-Host ">>> Running Portfolio Live Test..." -ForegroundColor Magenta
+deno run --allow-net --allow-read --allow-env --import-map=$IMPORT_MAP_PATH scripts/deno/test_portfolio_live.ts
+
+Write-Host ">>> Running Market Data Live Test..." -ForegroundColor Magenta
+deno run --allow-net --allow-read --allow-env --import-map=$IMPORT_MAP_PATH scripts/deno/test_market_data_live.ts
 
 $env:SUPABASE_URL = $null
 $env:SUPABASE_SERVICE_ROLE_KEY = $null

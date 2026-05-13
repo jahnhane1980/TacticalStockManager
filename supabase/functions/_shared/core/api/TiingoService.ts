@@ -1,6 +1,6 @@
 import ky from "ky";
 import { z } from "zod";
-import { BaseApiService } from "api/BaseApiService.ts";
+import { BaseApiService, ServiceResponse } from "api/BaseApiService.ts";
 import { PriceStringSchema } from "core/models/ZodUtils.ts";
 
 /**

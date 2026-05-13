@@ -1,5 +1,5 @@
 # gemini-commit.ps1
-# Beleg: Searching for 'Powershell pass string to CLI'... [Found in standard PS practices]
+# Beleg: Searching for 'Windows command line max length limit'... [Found: 8191 characters]
 
 # Sorgt fuer korrekte Ausgabe in der Konsole
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -42,7 +42,16 @@ if (Test-Path $envFile) {
 
 Write-Host "[INFO] Generiere Commit-Message mit Gemini..." -ForegroundColor White
 
-# 3. CLI mit dem String als direktes Argument aufrufen
-npx @google/gemini-cli "$prompt"
+# 3. Workaround fuer Windows Zeichenlimit: Temporaere Datei nutzen
+$tempFile = ".gemini-temp-prompt.txt"
+$prompt | Out-File -FilePath $tempFile -Encoding utf8
+
+# CLI mit der Datei-Injektion aufrufen (vermeidet Längenlimit)
+npx @google/gemini-cli "@$tempFile"
+
+# 4. Temporaere Datei wieder aufraeumen
+if (Test-Path $tempFile) {
+    Remove-Item -Path $tempFile -Force
+}
 
 Write-Host "`n[ERFOLG] Fertig." -ForegroundColor Green
