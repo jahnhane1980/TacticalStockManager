@@ -67,6 +67,8 @@ async function main() {
       total_cost_eur: String(item.walletImpact.totalCost),
       current_value_eur: String(item.walletImpact.currentValue),
       fx_impact: String(item.walletImpact.fxImpact || 0),
+      is_active: true,
+      frequency_id: "daily",
       last_sync: new Date().toISOString(),
       raw_snapshot: item
     }));
@@ -83,8 +85,10 @@ async function main() {
     const idemResult = await repo.upsertPortfolioPositions(updatedPositions);
     if (idemResult.error) throw new Error(`Idempotenz-Upsert fehlgeschlagen: ${idemResult.error.message}`);
 
-    const { data: storedTickers } = await repo.getStoredTickers();
-    const count = storedTickers?.filter(t => testPositions.some(tp => tp.ticker === t)).length;
+    const { data: storedTickers, error: fetchError } = await repo.getStoredTickers();
+    if (fetchError) throw new Error(`Fehler beim Abrufen der Ticker in Stufe 2: ${fetchError.message}`);
+
+    const count = storedTickers?.filter(t => testPositions.some(tp => tp.ticker === t.ticker)).length ?? 0;
     
     if (count !== testPositions.length) {
       throw new Error(`Idempotenz-Verletzung: Erwartete ${testPositions.length} Einträge, fand ${count}.`);
@@ -103,11 +107,21 @@ async function main() {
       throw new Error("Sabotage fehlgeschlagen: DB hätte Fehler werfen müssen.");
     }
 
-    // --- CLEANUP ---
-    console.log(`\n${COLOR_CYAN}--- [Cleanup] Lösche Testdaten ---${COLOR_RESET}`);
-    const tickersToDelete = testPositions.map(p => p.ticker);
-    await repo.deletePositions(tickersToDelete);
-    console.log(`${COLOR_GREEN}✅ Cleanup erfolgreich.${COLOR_RESET}`);
+    // --- STUFE 4: Verifizierung der Deaktivierung (Soft-Delete) ---
+    console.log(`\n${COLOR_YELLOW}Stufe 4: Verifizierung der Deaktivierung (Soft-Delete)...${COLOR_RESET}`);
+    const tickersToDeactivate = testPositions.map(p => p.ticker);
+    const deactivateResult = await repo.deactivatePositions(tickersToDeactivate);
+    if (deactivateResult.error) throw new Error(`Deaktivierung fehlgeschlagen: ${deactivateResult.error.message}`);
+
+    const { data: activeTickers } = await repo.getStoredTickers(true); // Default ist true
+    const remainingCount = activeTickers?.filter(t => tickersToDeactivate.includes(t.ticker)).length;
+
+    if (remainingCount && remainingCount > 0) {
+      throw new Error(`Soft-Delete fehlgeschlagen: ${remainingCount} deaktvierte Ticker sind noch in der aktiven Liste enthalten.`);
+    }
+    console.log(`${COLOR_GREEN}✅ Stufe 4 erfolgreich: Ticker deaktiviert und nicht mehr im aktiven Bestand gelistet.${COLOR_RESET}`);
+
+    console.log(`\n${COLOR_CYAN}--- [Test beendet] Alle Stufen erfolgreich bestanden ---${COLOR_RESET}`);
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);

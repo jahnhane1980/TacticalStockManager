@@ -5,37 +5,43 @@ import { SupabaseClient, PostgrestError } from "supabase";
 import { PortfolioRepository, PortfolioDbErrorCodes, PortfolioDbErrorMessages, type PortfolioEntity } from "core/repository/PortfolioRepository.ts";
 
 /**
- * Hilfs-Typen für das Supabase-Mocking ohne 'any' (Regel 1).
- */
-type MockQueryBuilder = {
-  select: (columns: string) => Promise<{ data: unknown[] | null; error: PostgrestError | null }>;
-  upsert: (values: unknown, options: { onConflict: string }) => Promise<{ error: PostgrestError | null }>;
-  delete: () => { in: (column: string, values: string[]) => Promise<{ error: PostgrestError | null }> };
-};
-
-/**
  * Erstellt einen Supabase-Client Mock.
  * 
- * @param queryBuilder Ein Objekt, das die Datenbank-Methoden simuliert.
+ * @param resultOrMethods Entweder das Ergebnis {data, error} oder ein Objekt mit Mock-Methoden.
  */
-const createSupabaseMock = (queryBuilder: Partial<MockQueryBuilder>): SupabaseClient => {
+const createSupabaseMock = (resultOrMethods: any): SupabaseClient => {
+  const builder: any = {
+    select: () => builder,
+    eq: () => builder,
+    update: () => builder,
+    in: () => Promise.resolve({ error: resultOrMethods.error || null }),
+    upsert: () => Promise.resolve({ error: resultOrMethods.error || null }),
+    delete: () => builder, // Für Abwärtskompatibilität, falls noch genutzt
+    then: (onfulfilled: any) => Promise.resolve(onfulfilled(resultOrMethods)),
+    ...resultOrMethods
+  };
+
   return {
-    from: (_table: string) => queryBuilder,
+    from: (_table: string) => builder,
   } as unknown as SupabaseClient;
 };
 
 // Test 1: getStoredTickers Erfolgsfall
 Deno.test("PortfolioRepository - Test 1: getStoredTickers Erfolgsfall", async () => {
-  const mockData = [{ ticker: "AAPL" }, { ticker: "TSLA" }];
-  const supabase = createSupabaseMock({
-    select: () => Promise.resolve({ data: mockData, error: null }),
-  });
+  const mockData = [
+    { ticker: "AAPL", monitoring_config: { is_active: true } },
+    { ticker: "TSLA", monitoring_config: { is_active: true } }
+  ];
+  const supabase = createSupabaseMock({ data: mockData, error: null });
   const repo = new PortfolioRepository(supabase);
 
   const result = await repo.getStoredTickers();
 
   assertEquals(result.error, null);
-  assertEquals(result.data, ["AAPL", "TSLA"]);
+  assertEquals(result.data, [
+    { ticker: "AAPL", is_active: true },
+    { ticker: "TSLA", is_active: true }
+  ]);
 });
 
 // Test 2: getStoredTickers Fehlerfall
@@ -46,9 +52,7 @@ Deno.test("PortfolioRepository - Test 2: getStoredTickers Fehlerfall", async () 
     details: "",
     hint: "",
   };
-  const supabase = createSupabaseMock({
-    select: () => Promise.resolve({ data: null, error: mockError }),
-  });
+  const supabase = createSupabaseMock({ data: null, error: mockError });
   const repo = new PortfolioRepository(supabase);
 
   const result = await repo.getStoredTickers();
@@ -79,6 +83,8 @@ Deno.test("PortfolioRepository - Test 3: upsertPortfolioPositions Erfolgsfall (N
       total_cost_eur: "1505",
       current_value_eur: "1750",
       fx_impact: "0",
+      is_active: true,
+      frequency_id: "DAILY",
       last_sync: "2026-05-12T00:00:00Z",
       raw_snapshot: null,
     },
@@ -104,38 +110,50 @@ Deno.test("PortfolioRepository - Test 4: upsertPortfolioPositions Fehlerfall", a
   });
   const repo = new PortfolioRepository(supabase);
 
-  const result = await repo.upsertPortfolioPositions([]);
+  const dummyPosition: PortfolioEntity = {
+    ticker: "ERROR",
+    is_active: true,
+    frequency_id: "daily",
+    quantity: "0",
+    average_price_paid: "0",
+    current_price: "0",
+    total_cost_eur: "0",
+    current_value_eur: "0",
+    fx_impact: "0"
+  };
+
+  const result = await repo.upsertPortfolioPositions([dummyPosition]);
 
   assertEquals(result.data, null);
   assertEquals(result.error?.code, PortfolioDbErrorCodes.UPSERT_FAILED);
 });
 
-// Test 5: deletePositions Erfolgsfall
-Deno.test("PortfolioRepository - Test 5: deletePositions Erfolgsfall", async () => {
+// Test 5: deactivatePositions Erfolgsfall
+Deno.test("PortfolioRepository - Test 5: deactivatePositions Erfolgsfall", async () => {
   const supabase = createSupabaseMock({
-    delete: () => ({
+    update: () => ({
       in: () => Promise.resolve({ error: null }),
     }),
   });
   const repo = new PortfolioRepository(supabase);
 
-  const result = await repo.deletePositions(["AAPL"]);
+  const result = await repo.deactivatePositions(["AAPL"]);
 
   assertEquals(result.error, null);
 });
 
-// Test 6: deletePositions mit leerer Liste (Edge Case)
-Deno.test("PortfolioRepository - Test 6: deletePositions mit leerer Liste", async () => {
-  const supabase = createSupabaseMock({}); // delete() sollte gar nicht aufgerufen werden
+// Test 6: deactivatePositions mit leerer Liste (Edge Case)
+Deno.test("PortfolioRepository - Test 6: deactivatePositions mit leerer Liste", async () => {
+  const supabase = createSupabaseMock({}); // update() sollte gar nicht aufgerufen werden
   const repo = new PortfolioRepository(supabase);
 
-  const result = await repo.deletePositions([]);
+  const result = await repo.deactivatePositions([]);
 
   assertEquals(result.error, null);
 });
 
-// Test 7: deletePositions Fehlerfall
-Deno.test("PortfolioRepository - Test 7: deletePositions Fehlerfall", async () => {
+// Test 7: deactivatePositions Fehlerfall
+Deno.test("PortfolioRepository - Test 7: deactivatePositions Fehlerfall", async () => {
   const mockError: PostgrestError = {
     code: "42703", // Undefined column
     message: "Column not found",
@@ -143,14 +161,14 @@ Deno.test("PortfolioRepository - Test 7: deletePositions Fehlerfall", async () =
     hint: "",
   };
   const supabase = createSupabaseMock({
-    delete: () => ({
+    update: () => ({
       in: () => Promise.resolve({ error: mockError }),
     }),
   });
   const repo = new PortfolioRepository(supabase);
 
-  const result = await repo.deletePositions(["INVALID"]);
+  const result = await repo.deactivatePositions(["INVALID"]);
 
   assertEquals(result.data, null);
-  assertEquals(result.error?.code, PortfolioDbErrorCodes.DELETE_FAILED);
+  assertEquals(result.error?.code, PortfolioDbErrorCodes.DEACTIVATE_FAILED);
 });

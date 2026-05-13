@@ -18,6 +18,8 @@ export const PortfolioEntitySchema = z.object({
   total_cost_eur: PriceStringSchema,
   current_value_eur: PriceStringSchema,
   fx_impact: PriceStringSchema,
+  is_active: z.boolean(),
+  frequency_id: z.string(),
   last_sync: z.string().nullish(),
   raw_snapshot: z.unknown().nullish(),
 });
@@ -34,6 +36,7 @@ export const PortfolioDbErrorCodes = {
   FETCH_TICKERS_FAILED: "PORTFOLIO_FETCH_TICKERS_FAILED",
   UPSERT_FAILED: "PORTFOLIO_UPSERT_FAILED",
   DELETE_FAILED: "PORTFOLIO_DELETE_FAILED",
+  DEACTIVATE_FAILED: "PORTFOLIO_DEACTIVATE_FAILED",
   INTERNAL_ERROR: "PORTFOLIO_INTERNAL_ERROR",
 } as const;
 
@@ -49,6 +52,7 @@ export const PortfolioDbErrorMessages: Record<PortfolioDbErrorCode, string> = {
   [PortfolioDbErrorCodes.FETCH_TICKERS_FAILED]: "PortfolioRepository: Fehler beim Laden der Ticker: {}",
   [PortfolioDbErrorCodes.UPSERT_FAILED]: "PortfolioRepository: Fehler beim Upsert der Positionen: {}",
   [PortfolioDbErrorCodes.DELETE_FAILED]: "PortfolioRepository: Fehler beim Löschen der Positionen: {}",
+  [PortfolioDbErrorCodes.DEACTIVATE_FAILED]: "PortfolioRepository: Fehler beim Deaktivieren der Positionen: {}",
   [PortfolioDbErrorCodes.INTERNAL_ERROR]: "PortfolioRepository: Interner Datenbankfehler: {}",
 };
 
@@ -58,57 +62,93 @@ export const PortfolioDbErrorMessages: Record<PortfolioDbErrorCode, string> = {
 export class PortfolioRepository extends BaseRepository {
   /**
    * Holt alle bereits gespeicherten Ticker aus der Datenbank.
+   * Fragt die Tabelle 'portfolio_snapshots' ab und verknüpft diese mit 'monitoring_config'.
    * 
-   * @returns Eine Liste der Ticker-Strings.
+   * @param onlyActive Wenn true (Standard), werden nur aktive Ticker zurückgegeben.
+   * @returns Eine Liste von Objekten mit Ticker und Aktivitätsstatus.
    */
-  async getStoredTickers(): RepoResponse<string[]> {
-    const { data, error } = await this.supabase
+  async getStoredTickers(onlyActive: boolean = true): RepoResponse<{ ticker: string; is_active: boolean }[]> {
+    let query = this.supabase
       .from("portfolio_snapshots")
-      .select("ticker");
+      .select("ticker, monitoring_config!inner(is_active)");
+
+    if (onlyActive) {
+      query = query.eq("monitoring_config.is_active", true);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return this.handleDbError(error, PortfolioDbErrorMessages, PortfolioDbErrorCodes.FETCH_TICKERS_FAILED);
     }
 
-    const tickers = data?.map((row: { ticker: string }) => row.ticker) ?? [];
-    return { data: tickers, error: null };
+    const results = data?.map((row: any) => ({
+      ticker: row.ticker as string,
+      is_active: (row.monitoring_config as any)?.is_active as boolean,
+    })) ?? [];
+
+    return { data: results, error: null };
   }
 
   /**
    * Führt einen Upsert für Portfolio-Positionen durch.
-   * Nutzt 'onConflict: ticker' zur Sicherstellung der Idempotenz (Regel 28).
+   * Aktualisiert idempotent sowohl 'portfolio_snapshots' als auch 'monitoring_config' (Regel 28).
    * 
    * @param positions Die zu speichernden Positionen.
    */
   async upsertPortfolioPositions(positions: PortfolioEntity[]): RepoResponse<null> {
-    const { error } = await this.supabase
-      .from("portfolio_snapshots")
-      .upsert(positions, { onConflict: "ticker" });
+    if (positions.length === 0) {
+      return { data: null, error: null };
+    }
 
-    if (error) {
-      return this.handleDbError(error, PortfolioDbErrorMessages, PortfolioDbErrorCodes.UPSERT_FAILED);
+    // 1. Daten für monitoring_config extrahieren und zuerst speichern
+    const configs = positions.map(({ ticker, is_active, frequency_id }) => ({
+      ticker,
+      is_active,
+      frequency_id,
+    }));
+
+    const { error: configError } = await this.supabase
+      .from("monitoring_config")
+      .upsert(configs, { onConflict: "ticker" });
+
+    if (configError) {
+      return this.handleDbError(configError, PortfolioDbErrorMessages, PortfolioDbErrorCodes.UPSERT_FAILED);
+    }
+
+    // 2. Daten für portfolio_snapshots extrahieren und erst danach speichern
+    const snapshots = positions.map(({ is_active, frequency_id, ...rest }) => rest);
+
+    const { error: snapshotError } = await this.supabase
+      .from("portfolio_snapshots")
+      .upsert(snapshots, { onConflict: "ticker" });
+
+    if (snapshotError) {
+      return this.handleDbError(snapshotError, PortfolioDbErrorMessages, PortfolioDbErrorCodes.UPSERT_FAILED);
     }
 
     return { data: null, error: null };
   }
 
   /**
-   * Löscht die Einträge für die übergebenen Ticker.
+   * Deaktiviert die Einträge für die übergebenen Ticker (setzt is_active=false und quantity=0).
+   * Ersetzt deletePositions zur Erhaltung der Historie.
    * 
-   * @param tickers Liste der zu löschenden Ticker.
+   * @param tickers Liste der zu deaktivierenden Ticker.
    */
-  async deletePositions(tickers: string[]): RepoResponse<null> {
+  async deactivatePositions(tickers: string[]): RepoResponse<null> {
     if (tickers.length === 0) {
       return { data: null, error: null };
     }
 
-    const { error } = await this.supabase
-      .from("portfolio_snapshots")
-      .delete()
-      .in("ticker", tickers);
+    const [snapRes, configRes] = await Promise.all([
+      this.supabase.from("portfolio_snapshots").update({ quantity: "0" }).in("ticker", tickers),
+      this.supabase.from("monitoring_config").update({ is_active: false }).in("ticker", tickers),
+    ]);
 
+    const error = snapRes.error || configRes.error;
     if (error) {
-      return this.handleDbError(error, PortfolioDbErrorMessages, PortfolioDbErrorCodes.DELETE_FAILED);
+      return this.handleDbError(error, PortfolioDbErrorMessages, PortfolioDbErrorCodes.DEACTIVATE_FAILED);
     }
 
     return { data: null, error: null };
