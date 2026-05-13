@@ -1,4 +1,0 @@
-CREATE TRIGGER trigger_update_observation_indicators
-BEFORE INSERT ON market_data_observation
-FOR EACH ROW
-EXECUTE FUNCTION calculate_tactical_indicators();
