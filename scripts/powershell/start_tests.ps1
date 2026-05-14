@@ -1,55 +1,49 @@
 # --- Konfiguration ---
-# Die Import-Map liegt korrekt unter functions
-$importMap = "./supabase/functions/import_map.json"
-# Korrektur: Der Test-Ordner liegt direkt unter supabase/tests
+# Zeigt jetzt auf unsere umbenannte Konfigurationsdatei
+$configFile = "./supabase/functions/deno.json"
 $testFolder = "./supabase/tests"
-# Pfad für die Coverage-Rohdaten
 $coverageDir = "./supabase/tests/coverage"
 
 Write-Host "--- Edge Functions Test-Runner startet ---" -ForegroundColor Cyan
 
-# 1. Validierung der Umgebung
-if (-not (Test-Path $importMap)) {
-    Write-Host "[FEHLER] import_map.json nicht gefunden unter $importMap" -ForegroundColor Red
-    exit 1
-}
+# 1. Validierung
+if (-not (Test-Path $configFile)) { Write-Host "[FEHLER] deno.json fehlt" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path $testFolder)) { Write-Host "[FEHLER] Test-Ordner fehlt" -ForegroundColor Red; exit 1 }
 
-if (-not (Test-Path $testFolder)) {
-    Write-Host "[FEHLER] Test-Ordner nicht gefunden unter $testFolder" -ForegroundColor Red
-    exit 1
-}
+# Vorbereitung: Alten Stand löschen, um saubere Daten zu haben
+if (Test-Path $coverageDir) { Remove-Item -Path $coverageDir -Recurse -Force }
 
-# Vorbereitung: Alten Coverage-Ordner entfernen, falls vorhanden
-if (Test-Path $coverageDir) {
-    Remove-Item -Path $coverageDir -Recurse -Force
-}
-
-# 2. Ausführung der Tests via Deno mit Coverage-Flag
-Write-Host "[RUN] Starte Deno Unit-Tests mit Coverage..." -ForegroundColor Yellow
-Write-Host "---------------------------------------------------" -ForegroundColor Gray
-
-# Wir nutzen --allow-all, verweisen auf die korrekte Import-Map und aktivieren --coverage
-deno test --allow-all --import-map=$importMap --no-check --coverage=$coverageDir $testFolder
+# 2. Test-Ausführung
+Write-Host "[RUN] Starte Tests mit Coverage-Aufzeichnung..." -ForegroundColor Yellow
+# Flag wurde von --import-map zu --config geändert
+deno test --allow-all --config=$configFile --no-check --coverage=$coverageDir $testFolder
 
 $testExitCode = $LASTEXITCODE
 
-# 3. Ergebnis-Auswertung und Coverage-Bericht
+# 3. Detaillierte Coverage-Auswertung
 if ($testExitCode -eq 0) {
     Write-Host "---------------------------------------------------" -ForegroundColor Gray
-    Write-Host "[ERFOLG] Alle Tests wurden erfolgreich bestanden!" -ForegroundColor Green
+    Write-Host "[REPORT] Gesamtübersicht der Abdeckung:" -ForegroundColor Yellow
     
-    Write-Host "`n[REPORT] Erstelle Coverage-Bericht..." -ForegroundColor Yellow
-    # Deno wertet die Daten im coverageDir aus und zeigt die Prozentzahlen sowie Lücken an
-    deno coverage $coverageDir
+    # 3a. Die Tabelle (wie gehabt)
+    deno coverage $coverageDir --exclude=tests
+    
+    Write-Host "`n[DETAILS] Analyse der ungetesteten Zeilen:" -ForegroundColor Yellow
+    Write-Host "---------------------------------------------------" -ForegroundColor Gray
+    
+    # 3b. Gezielte Abfrage der Dateien, um die 'uncovered lines' zu erzwingen
+    # Wir filtern hier auf deine Kern-Ordner (api, models, repository)
+    Get-ChildItem -Path "./supabase/functions" -Recurse -Include *.ts | ForEach-Object {
+        $relPath = $_.FullName
+        # Deno coverage für die Einzeldatei aufrufen, um Details zu sehen
+        deno coverage $coverageDir --exclude=tests | Select-String $_.Name -Context 0,1 | Write-Host
+    }
+
+    Write-Host "`n[INFO] Der vollständige Report bleibt unter '$coverageDir' erhalten." -ForegroundColor Cyan
+    Write-Host "Du kannst jetzt die index.html (falls von deinem Tool erzeugt) dort öffnen." -ForegroundColor Gray
 } else {
     Write-Host "---------------------------------------------------" -ForegroundColor Gray
-    Write-Host "[FEHLER] Einige Tests sind fehlgeschlagen. Coverage-Bericht wird übersprungen." -ForegroundColor Red
+    Write-Host "[FEHLER] Tests fehlgeschlagen." -ForegroundColor Red
 }
 
-# Bereinigung: Coverage-Rohdaten nach der Auswertung entfernen
-if (Test-Path $coverageDir) {
-    Remove-Item -Path $coverageDir -Recurse -Force
-}
-
-Write-Host "`nTest-Lauf beendet." -ForegroundColor Cyan
 exit $testExitCode

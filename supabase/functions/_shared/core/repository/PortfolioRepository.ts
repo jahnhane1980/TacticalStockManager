@@ -11,6 +11,8 @@ export const PortfolioDbErrorCodes = {
   UPSERT_FAILED: "PORTFOLIO_UPSERT_FAILED",
   DELETE_FAILED: "PORTFOLIO_DELETE_FAILED",
   DEACTIVATE_FAILED: "PORTFOLIO_DEACTIVATE_FAILED",
+  SYNC_FETCH_FAILED: "PORTFOLIO_SYNC_FETCH_FAILED",
+  UNLOCK_FAILED: "PORTFOLIO_UNLOCK_FAILED",
   INTERNAL_ERROR: "PORTFOLIO_INTERNAL_ERROR",
 } as const;
 
@@ -27,6 +29,8 @@ export const PortfolioDbErrorMessages: Record<PortfolioDbErrorCode, string> = {
   [PortfolioDbErrorCodes.UPSERT_FAILED]: "PortfolioRepository: Fehler beim Upsert der Positionen: {}",
   [PortfolioDbErrorCodes.DELETE_FAILED]: "PortfolioRepository: Fehler beim Löschen der Positionen: {}",
   [PortfolioDbErrorCodes.DEACTIVATE_FAILED]: "PortfolioRepository: Fehler beim Deaktivieren der Positionen: {}",
+  [PortfolioDbErrorCodes.SYNC_FETCH_FAILED]: "PortfolioRepository: Fehler beim Abrufen der Sync-Ticker: {}",
+  [PortfolioDbErrorCodes.UNLOCK_FAILED]: "PortfolioRepository: Fehler beim Entsperren des Tickers: {}",
   [PortfolioDbErrorCodes.INTERNAL_ERROR]: "PortfolioRepository: Interner Datenbankfehler: {}",
 };
 
@@ -41,10 +45,24 @@ export class PortfolioRepository extends BaseRepository {
    * @param onlyActive Wenn true (Standard), werden nur aktive Ticker zurückgegeben.
    * @returns Eine Liste von Objekten mit Ticker und Aktivitätsstatus.
    */
-  async getStoredTickers(onlyActive: boolean = true): RepoResponse<{ ticker: string; is_active: boolean }[]> {
+  async getStoredTickers(onlyActive: boolean = true): RepoResponse<{ 
+    ticker: string; 
+    is_active: boolean;
+    last_historical_sync: string | null;
+    last_observation_sync: string | null;
+    locked_until: string | null;
+  }[]> {
     let query = this.supabase
       .from("portfolio_snapshots")
-      .select("ticker, monitoring_config!inner(is_active)");
+      .select(`
+        ticker, 
+        monitoring_config!inner(
+          is_active, 
+          last_historical_sync, 
+          last_observation_sync, 
+          locked_until
+        )
+      `);
 
     if (onlyActive) {
       query = query.eq("monitoring_config.is_active", true);
@@ -59,9 +77,78 @@ export class PortfolioRepository extends BaseRepository {
     const results = data?.map((row: any) => ({
       ticker: row.ticker as string,
       is_active: (row.monitoring_config as any)?.is_active as boolean,
+      last_historical_sync: (row.monitoring_config as any)?.last_historical_sync as string | null,
+      last_observation_sync: (row.monitoring_config as any)?.last_observation_sync as string | null,
+      locked_until: (row.monitoring_config as any)?.locked_until as string | null,
     })) ?? [];
 
     return { data: results, error: null };
+  }
+
+  /**
+   * Sucht fällige Ticker für die Synchronisation und sperrt diese sofort.
+   * Ticker sind fällig, wenn sie aktiv sind und locked_until leer oder in der Vergangenheit liegt.
+   * 
+   * @param limit Maximale Anzahl der zu synchronisierenden Ticker.
+   */
+  async getTickersForSync(limit: number): RepoResponse<string[]> {
+    const now = new Date().toISOString();
+    
+    // 1. Suche nach fälligen Tickern
+    const { data, error: fetchError } = await this.supabase
+      .from("monitoring_config")
+      .select("ticker")
+      .eq("is_active", true)
+      .or(`locked_until.is.null,locked_until.lt.${now}`)
+      .order("last_observation_sync", { ascending: true, nullsFirst: true })
+      .limit(limit);
+
+    if (fetchError) {
+      return this.handleDbError(fetchError, PortfolioDbErrorMessages, PortfolioDbErrorCodes.SYNC_FETCH_FAILED);
+    }
+
+    if (!data || data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const tickers = data.map(d => d.ticker);
+    const lockUntil = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+
+    // 2. Sperren der Ticker (locked_until = NOW + 3 Min)
+    const { error: lockError } = await this.supabase
+      .from("monitoring_config")
+      .update({ locked_until: lockUntil })
+      .in("ticker", tickers);
+
+    if (lockError) {
+      return this.handleDbError(lockError, PortfolioDbErrorMessages, PortfolioDbErrorCodes.SYNC_FETCH_FAILED);
+    }
+
+    return { data: tickers, error: null };
+  }
+
+  /**
+   * Entsperrt einen Ticker und aktualisiert optional den Sync-Zeitstempel.
+   * 
+   * @param ticker Das Ticker-Symbol.
+   * @param isSuccess Wenn true, wird last_observation_sync auf NOW() gesetzt.
+   */
+  async unlockTicker(ticker: string, isSuccess: boolean): RepoResponse<null> {
+    const updateData: any = { locked_until: null };
+    if (isSuccess) {
+      updateData.last_observation_sync = new Date().toISOString();
+    }
+
+    const { error } = await this.supabase
+      .from("monitoring_config")
+      .update(updateData)
+      .eq("ticker", ticker);
+
+    if (error) {
+      return this.handleDbError(error, PortfolioDbErrorMessages, PortfolioDbErrorCodes.UNLOCK_FAILED);
+    }
+
+    return { data: null, error: null };
   }
 
   /**

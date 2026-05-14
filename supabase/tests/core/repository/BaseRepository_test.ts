@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assertThrows } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { SupabaseClient, PostgrestError } from "supabase";
 import { BaseRepository } from "core/repository/BaseRepository.ts";
 
@@ -21,6 +21,14 @@ class TestRepository extends BaseRepository {
     return this.handleDbError(error, TEST_DB_DICT, "DB_FALLBACK");
   }
 }
+
+Deno.test("BaseRepository - Constructor: Wirft Fehler bei null/undefined Client", () => {
+  assertThrows(
+    () => new TestRepository(null as any),
+    Error,
+    "BaseRepository: SupabaseClient darf nicht null sein."
+  );
+});
 
 Deno.test("BaseRepository - handleDbError: Bekannter Fehlercode (23505)", () => {
   const mockSupabase = {} as SupabaseClient;

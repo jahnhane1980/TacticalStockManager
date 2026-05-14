@@ -42,7 +42,7 @@ npx supabase start
 Write-Host "[6/6] Starte Edge Functions Server (Deno)..." -ForegroundColor Yellow
 if (Test-Path $functionsEnv) {
     Write-Host "Lade Umgebungsvariablen aus $functionsEnv" -ForegroundColor Gray
-    # Startet den Server und zeigt Logs direkt in dieser Konsole an
+    # Startet den Server ohne fehleranfällige Flags. Deno findet die deno.json automatisch.
     npx supabase functions serve --env-file $functionsEnv
 } else {
     Write-Host "WARNUNG: Keine .env für Functions gefunden unter $functionsEnv. Starte ohne Secrets." -ForegroundColor Red

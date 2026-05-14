@@ -1,4 +1,4 @@
-// scripts/deno/test_repo_live.ts
+// scripts/deno/test_portfolio_live.ts
 
 import { createClient } from "supabase";
 import { PortfolioRepository } from "core/repository/PortfolioRepository.ts";
@@ -70,6 +70,8 @@ async function main() {
       is_active: true,
       frequency_id: "daily",
       last_sync: new Date().toISOString(),
+      last_observation_sync: new Date(Date.now() - 3600000).toISOString(), // 1 Stunde alt
+      locked_until: null,
       raw_snapshot: item
     }));
 
@@ -120,6 +122,31 @@ async function main() {
       throw new Error(`Soft-Delete fehlgeschlagen: ${remainingCount} deaktvierte Ticker sind noch in der aktiven Liste enthalten.`);
     }
     console.log(`${COLOR_GREEN}✅ Stufe 4 erfolgreich: Ticker deaktiviert und nicht mehr im aktiven Bestand gelistet.${COLOR_RESET}`);
+
+    // --- STUFE 5: Rolling Sync Lock-Test ---
+    console.log(`\n${COLOR_YELLOW}Stufe 5: Rolling Sync Lock-Test...${COLOR_RESET}`);
+    // Wir aktivieren die Ticker wieder, damit sie für den Sync gefunden werden können
+    const reactivateConfigs = testPositions.map(({ ticker, frequency_id }) => ({
+      ticker,
+      is_active: true,
+      frequency_id,
+      locked_until: null // Lock explizit entfernen
+    }));
+    const { error: reactivateError } = await supabase.from("monitoring_config").upsert(reactivateConfigs, { onConflict: "ticker" });
+    if (reactivateError) throw new Error(`Reaktivierung fehlgeschlagen: ${reactivateError.message}`);
+
+    const syncResult = await repo.getTickersForSync(2);
+    if (syncResult.error) throw new Error(`getTickersForSync fehlgeschlagen: ${syncResult.error.message}`);
+    
+    const syncedTickers = syncResult.data || [];
+    if (syncedTickers.length === 0) {
+      throw new Error(`Sync-Fehler: Keine Ticker zurückgegeben.`);
+    }
+    if (syncedTickers.length > 2) {
+      throw new Error(`Sync-Fehler: Zu viele Ticker zurückgegeben (${syncedTickers.length})`);
+    }
+    
+    console.log(`${COLOR_GREEN}✅ Stufe 5 erfolgreich: Ticker für Sync geladen und gelockt.${COLOR_RESET}`);
 
     console.log(`\n${COLOR_CYAN}--- [Test beendet] Alle Stufen erfolgreich bestanden ---${COLOR_RESET}`);
 

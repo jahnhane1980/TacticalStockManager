@@ -1,0 +1,5 @@
+# Projekt-Einstellungen
+project_id = "tactical-stock-manager"
+
+[functions.sync_market_data]
+verify_jwt = false

@@ -97,6 +97,27 @@ export class MarketDataRepository extends BaseRepository {
   }
 
   /**
+   * Holt den aktuellsten Marktdatensatz für einen Ticker.
+   * 
+   * @param ticker Das Ticker-Symbol.
+   */
+  async getLatestMarketData(ticker: string): RepoResponse<MarketDataDailyEntity> {
+    const { data, error } = await this.supabase
+      .from("market_data_daily")
+      .select("*")
+      .eq("ticker", ticker)
+      .order("ts", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return this.handleDbError(error, MarketDbErrorMessages, MarketDbErrorCodes.FETCH_FAILED);
+    }
+
+    return { data: data as MarketDataDailyEntity | null, error: null };
+  }
+
+  /**
    * Holt einen Zeitraum von Kursdaten für einen Ticker.
    * Nützlich für die Berechnung von Indikatoren (Regel 4).
    * 
