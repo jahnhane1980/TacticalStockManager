@@ -3,6 +3,8 @@
 $importMap = "./supabase/functions/import_map.json"
 # Korrektur: Der Test-Ordner liegt direkt unter supabase/tests
 $testFolder = "./supabase/tests"
+# Pfad für die Coverage-Rohdaten
+$coverageDir = "./supabase/tests/coverage"
 
 Write-Host "--- Edge Functions Test-Runner startet ---" -ForegroundColor Cyan
 
@@ -17,20 +19,37 @@ if (-not (Test-Path $testFolder)) {
     exit 1
 }
 
-# 2. Ausführung der Tests via Deno
-Write-Host "[RUN] Starte Deno Unit-Tests..." -ForegroundColor Yellow
+# Vorbereitung: Alten Coverage-Ordner entfernen, falls vorhanden
+if (Test-Path $coverageDir) {
+    Remove-Item -Path $coverageDir -Recurse -Force
+}
+
+# 2. Ausführung der Tests via Deno mit Coverage-Flag
+Write-Host "[RUN] Starte Deno Unit-Tests mit Coverage..." -ForegroundColor Yellow
 Write-Host "---------------------------------------------------" -ForegroundColor Gray
 
-# Wir nutzen --allow-all und verweisen auf die korrekte Import-Map
-deno test --allow-all --import-map=$importMap --no-check $testFolder
+# Wir nutzen --allow-all, verweisen auf die korrekte Import-Map und aktivieren --coverage
+deno test --allow-all --import-map=$importMap --no-check --coverage=$coverageDir $testFolder
 
-# 3. Ergebnis-Auswertung
-if ($LASTEXITCODE -eq 0) {
+$testExitCode = $LASTEXITCODE
+
+# 3. Ergebnis-Auswertung und Coverage-Bericht
+if ($testExitCode -eq 0) {
     Write-Host "---------------------------------------------------" -ForegroundColor Gray
     Write-Host "[ERFOLG] Alle Tests wurden erfolgreich bestanden!" -ForegroundColor Green
+    
+    Write-Host "`n[REPORT] Erstelle Coverage-Bericht..." -ForegroundColor Yellow
+    # Deno wertet die Daten im coverageDir aus und zeigt die Prozentzahlen sowie Lücken an
+    deno coverage $coverageDir
 } else {
     Write-Host "---------------------------------------------------" -ForegroundColor Gray
-    Write-Host "[FEHLER] Einige Tests sind fehlgeschlagen. Bitte Logs prüfen." -ForegroundColor Red
+    Write-Host "[FEHLER] Einige Tests sind fehlgeschlagen. Coverage-Bericht wird übersprungen." -ForegroundColor Red
+}
+
+# Bereinigung: Coverage-Rohdaten nach der Auswertung entfernen
+if (Test-Path $coverageDir) {
+    Remove-Item -Path $coverageDir -Recurse -Force
 }
 
 Write-Host "`nTest-Lauf beendet." -ForegroundColor Cyan
+exit $testExitCode
